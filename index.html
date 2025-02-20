@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+	<title>ToC-TTS : Single Fine-Grained Conditioning to Text-to-Speech Based on Dialogue Text Context </title>
+	<meta name="generator" content="Jekyll v3.9.0">
+	<meta property="og:title" content="ToC-TTS : Single Fine-Grained Conditioning to Text-to-Speech Based on Dialogue Text Context">
+	<meta property="og.locale" content ="en_US">
+	<link rel="canonical" href="https://github.com/johnny9696/ToC-TTS-DEMO/">
+	<meta property="og:url" content="https://github.com/johnny9696/ToC-TTS-DEMO/">
+	<meta name="twitter:card" content="summary">
+
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#157878">
+	<link rel="stylesheet" href="./style.css">
+
+
+	    <style>
+			.slider-container {
+			    position: relative;
+			    width: 100%;
+			    height: 500px; /* 이미지 높이를 고정 */
+			    margin: auto;
+			    overflow: hidden;
+			    padding-left: 10px;
+			    padding-right: 10px;
+			}
+
+			.slider-container img {
+			    position: absolute; /* 이미지를 절대 위치로 설정 */
+			    width: 97%; /* 부모 컨테이너에 맞게 이미지 너비 100% */
+			    height: 450px; /* 고정된 이미지 높이 */
+			    object-fit: contain; /* 이미지 비율 유지 */
+
+			    transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+			}
+
+
+				.image-text {
+				    position: absolute;
+				    bottom: 0;  /* 이미지 하단에 배치 */
+				    left: 0;
+				    width: 100%; /* 이미지의 너비와 동일하게 설정 */
+				    background-color: rgba(0, 0, 0, 0); /* 배경 색 */
+				    color: black;
+				    padding: 10px;
+				    font-size: 16px;
+				    text-align: center; /* 텍스트 중앙 정렬 */
+				    z-index: 2;
+				}
+
+			.arrow {
+			    position: absolute;
+			    top: 50%;
+			    transform: translateY(-50%);
+			    background-color: rgba(0, 0, 0, 0.5);
+			    color: white;
+			    border: none;
+			    padding: 10px 15px;
+			    font-size: 10px;
+			    cursor: pointer;
+			    z-index: 10;
+			    border-radius: 50%;
+			    opacity: 0.4; /* 기본 투명도를 낮추기 */
+			    transition: opacity 0.2s ease; /* 부드러운 투명도 변화 */
+			}
+
+				.left-arrow {
+				    left: 10px;
+				}
+
+				.right-arrow {
+				    right: 10px;
+				}
+
+				.arrow:hover {
+				    background-color: rgba(0, 0, 0, 0.9);
+				}
+    </style>
+
+
+</head>
+
+<section class = "page-header">
+</section>
+
+<section class="main-context">
+	<h1 id=""><center>ToC-TTS : Single Fine-Grained Conditioning to Text-to-Speech Based on Dialogue Text Context</center></h1>
+
+	<div style="display: none;">
+	  <center>Junbum Kim<sup>1</sup>, and Joon-Hyuk Chang<sup>2</sup></center>
+	  <br>
+	  <center>Department of Electronic Engineering, Hanyang University, Seoul, Republic of Korea <sup>1, 2</sup></center>
+	  <center>johnny960423@gmail.com<sup>1</sup>,&nbsp;&nbsp;&nbsp; jchang@hanyang.ac.kr <sup>2</sup></center>
+	</div>
+
+	<!-- 대체 텍스트 -->
+	<div>
+	  <center><i>Anonymous submission to Interspeech 2025</i></center>
+	</div>
+
+
+	<center><h2 id="abstract">Abstract</h2></center>
+	<br>
+	<p style = "font-size: 18px; padding-left: 15px; padding-right: 15px;">
+While human-computer interaction becomes more important, synthesizing human-like speech remains as a challenging issue. Conversational text-to-speech needs further research to generate natural dialogues for realistic situations. Previous research focused on understanding the conversation itself, without considering speaker relationships or emotional states. These models typically use pretrained systems to extract feature vectors from text and audio, sometimes causing mismatches between the ground truth feature vector and the synthesized audio vector.To address these problems, we propose a ToC-TTS model with two modules. First, text-only dialogue context encoder captures conversation flow and speaker relationships using text, and generate single fine-grained condition that could replace split coarse-grained and fine-grained condition. Second, target prosody extractor compensates by extracting prosody from ground truth speech, allowing the encoder to predict prosody. Our model achieved an MOS score of 3.63, demonstrating its naturalness and quality in synthesizing dialogue-based speech. 
+	</p>
+	<br>
+	<center><h2><p class="toc_title">Contents</p></h2></center>
+	<div id="toc_container" style="font-size: 18px;">
+		<ol>
+			<li><a href="#1">Model Architecture & Key Methods</a></li>
+			<li><a href="#2">Speech Demos</a></li>
+			<li><a href="#3">Evaluation Results</a></li>
+		</ol>
+	</div>
+	<br>
+	<center><a name="1"><h2>1. Model Architecture & Key Methods</h2></a></center>
+	
+
+	<div style="margin-top: 20px;">
+	  <div style="margin-bottom: 20px;">
+	    <h3 style = "padding-left: 10px;">1.1. Model Architecture & Key Methods Image</h3>
+
+<div class="slider-container">
+    <button class="arrow left-arrow" onclick="slideImage(-1)">◀</button>
+    <img id="image" src="./Dialogue_example.png" alt="image">
+    <div id="text" class="image-text">Figure 1. Chain of speaker's emotion affect on conversation.</div>
+    <button class="arrow right-arrow" onclick="slideImage(1)">▶</button>
+</div>
+
+<script>
+    let images = [
+    { src: "./Dialogue_example.png", text: "Figure 1. Chain of speaker's emotion affect on conversation." },
+    { src: "./FULL.png", text: "Figure 2. Overall proposed model architecture."}
+		];
+		let index = 0;
+
+		function slideImage(direction) {
+		    let img = document.getElementById("image");
+		    let text = document.getElementById("text");
+
+		    let moveOut = direction === 1 ? "100%" : "-100%";  
+		    let moveIn = direction === 1 ? "-100%" : "100%";   
+
+		    img.style.transition = "transform 0.5s ease, opacity 0.5s ease"; 
+		    img.style.transform = `translateX(${moveOut})`;
+		    img.style.opacity = "0"; 
+
+		    setTimeout(() => {
+		        // 새 이미지로 변경
+		        index = (index + direction + images.length) % images.length;
+		        img.src = images[index].src;
+		        text.textContent = images[index].text; // 하단 텍스트 업데이트
+
+		        // 새로운 이미지가 반대 방향에서 들어옴
+		        img.style.transform = `translateX(${moveIn})`;
+
+		        setTimeout(() => {
+		            img.style.transform = "translateX(0)"; // 원래 위치로 복원
+		            img.style.opacity = "1"; // 이미지가 다시 보이게
+		        }, 50); // 자연스러운 전환 효과
+		    }, 500); // 기존 이미지 애니메이션 시간
+		}
+
+</script>
+
+	  </div>
+	  <br>
+	  <div>
+	    <h3 style = "padding-left: 10px;">1.2. Key Methods</h3>
+		<div id="toc_container" style="font-size: 18px;">
+			<ul>
+				<li style = "padding-left: 10px; padding-right: 10px;">To solve the mismatch problem between the ground truth and synthesized speech, the proposed method extracts the dialogue context using only text.</li>
+				<li style = "padding-left: 10px; padding-right: 10px;">To solve lack of information on single-modality, we made a target by using ground truth speech.</li>
+				<li style = "padding-left: 10px; padding-right: 10px;">To make the conversation more similar to a real human interaction, a module is structured by separating the global and speaker modules.</li>
+			</ul>
+		</div>
+	  </div>
+	</div>
+
+
+	<br>
+
+	<center><a name="2"><h2>2. Speech Demos</h2></a></center>
+	<h3 style = "padding-left: 10px;">2.1. Compare Different Model</h3>
+		<ul><p style = "padding-left: 10px; padding-right: 10px;">
+			All the model was trained with batch size 16 and reconstructed to wave form by HiFi-GAN universal pre-trained model.
+		</p></ul>
+	<div style="overflow-x: auto;">
+	  <table style="border-collapse: collapse; width: 100%; font-size: 16px; text-align: center;">
+	    <tr>
+	      <th colspan="7" style="font-size: 20px; padding: 15px; border-bottom: 2px solid black;">Single Speech Demos</th>
+	    </tr>
+	    <tr>
+	      <th style="border-top: 1px solid black; border-bottom: 1px solid black; width: 500px; text-align: center;">Text</th>
+	      <th style="border-top: 1px solid black; border-bottom: 1px solid black;">GT</th>
+	      <th style="border-top: 1px solid black; border-bottom: 1px solid black;">FS2</th>
+	      <th style="border-top: 1px solid black; border-bottom: 1px solid black;">DailyTalk</th>
+	      <th style="border-top: 1px solid black; border-bottom: 1px solid black;">FCTalker</th>
+	      <th style="border-top: 1px solid black; border-bottom: 1px solid black;">Proposed (N = 5)</th>
+
+	    </tr>
+ <tr>
+      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        Wow, that looks beautiful!
+      </td>
+
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/GT/2_1_d3.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/FS2/2_1_d3.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/DailyTalk/2_1_d3.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/FCTalker/2_1_d3.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L5/2_1_d3.wav" controls preload></audio></td>
+    </tr>
+
+     <tr>
+      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        Do you think I should wear different dress?
+      </td>
+
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/GT/3_1_d521.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/FS2/3_1_d521.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/DailyTalk/3_1_d521.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/FCTalker/3_1_d521.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L5/3_1_d521.wav" controls preload></audio></td>
+    </tr>
+
+    <tr>
+      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        I need a phone card for this new cell phone.
+      </td>
+
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/GT/1_1_d766.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/FS2/1_1_d766.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/DailyTalk/1_1_d766.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/FCTalker/1_1_d766.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L5/1_1_d766.wav" controls preload></audio></td>
+    </tr>
+
+        <tr>
+      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        How much does it cost?
+      </td>
+
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/GT/4_0_d1017.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/FS2/4_0_d1017.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/DailyTalk/4_0_d1017.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/FCTalker/4_0_d1017.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L5/4_0_d1017.wav" controls preload></audio></td>
+    </tr>
+
+	  </table>
+	</div>
+
+	<br>
+
+<div style="overflow-x: auto;">
+  <table style="border-collapse: collapse; width: 100%; font-size: 16px; text-align: center;">
+    <tr>
+      <th colspan="8" style="font-size: 20px; padding: 15px; border-bottom: 2px solid black;">Dialogue Speech Demos</th>
+    </tr>
+    <tr>
+      <th style="border-top: 1px solid black; border-bottom: 1px solid black; min-width: 400px; max-width: 600px; text-align: center;">Text</th>
+      <th style="border-top: 1px solid black; border-bottom: 1px solid black; width: 200px; text-align: center;">Turns</th>
+      <th style="border-top: 1px solid black; border-bottom: 1px solid black;">GT</th>
+      <th style="border-top: 1px solid black; border-bottom: 1px solid black;">FS2</th>
+      <th style="border-top: 1px solid black; border-bottom: 1px solid black;">DailyTalk</th>
+      <th style="border-top: 1px solid black; border-bottom: 1px solid black;">FCTalker</th>
+      <th style="border-top: 1px solid black; border-bottom: 1px solid black;">Proposed (N = 5)</th>
+
+    </tr>
+ <tr>
+      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        What can I do for you?
+      </td>
+       <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: center; 
+        min-width: 100px; 
+        max-width: 200px; 
+        overflow: auto;">
+        0
+      </td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/GT/0_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FS2/0_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/DailyTalk/0_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FCTalker/0_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/L5/0_0_d865.wav" controls preload></audio></td>
+
+    </tr>
+    <tr>
+      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        I want to check out these books.
+      </td>
+       <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: center; 
+        min-width: 100px; 
+        max-width: 200px; 
+        overflow: auto;">
+        1
+      </td>
+     <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/GT/1_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FS2/1_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/DailyTalk/1_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FCTalker/1_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/L5/1_1_d865.wav" controls preload></audio></td>
+    </tr>
+
+    <tr>
+      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        I need your library card.
+      </td>
+       <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: center; 
+        min-width: 100px; 
+        max-width: 200px; 
+        overflow: auto;">
+        2
+      </td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/GT/2_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FS2/2_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/DailyTalk/2_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FCTalker/2_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/L5/2_0_d865.wav" controls preload></audio></td>
+    </tr>
+
+    <tr>
+      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        I have it right here.
+      </td>
+       <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: center; 
+        min-width: 100px; 
+        max-width: 200px; 
+        overflow: auto;">
+        3
+      </td>
+       <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/GT/3_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FS2/3_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/DailyTalk/3_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FCTalker/3_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/L5/3_1_d865.wav" controls preload></audio></td>
+    </tr>
+
+    <tr>
+      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        It seems you have late fees.
+      </td>
+       <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: center; 
+        min-width: 100px; 
+        max-width: 200px; 
+        overflow: auto;">
+        4
+      </td>
+       <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/GT/4_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FS2/4_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/DailyTalk/4_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FCTalker/4_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/L5/4_0_d865.wav" controls preload></audio></td>
+    </tr>
+
+    <tr>
+      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        Are you sure?
+      </td>
+       <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: center; 
+        min-width: 100px; 
+        max-width: 200px; 
+        overflow: auto;">
+        5
+      </td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/GT/5_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FS2/5_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/DailyTalk/5_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FCTalker/5_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/L5/5_1_d865.wav" controls preload></audio></td>
+    </tr>
+
+    <tr>
+      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        Yes, I'm sure.
+      </td>
+       <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: center; 
+        min-width: 100px; 
+        max-width: 200px; 
+        overflow: auto;">
+        6
+      </td>
+       <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/GT/6_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FS2/6_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/DailyTalk/6_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FCTalker/6_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/L5/6_0_d865.wav" controls preload></audio></td>
+    </tr>
+
+    <tr>
+      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        How much?
+      </td>
+       <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: center; 
+        min-width: 100px; 
+        max-width: 200px; 
+        overflow: auto;">
+        7
+      </td>
+       <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/GT/7_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FS2/7_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/DailyTalk/7_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FCTalker/7_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/L5/7_1_d865.wav" controls preload></audio></td>
+    </tr>
+
+    <tr>
+      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        Your late fees come to twenty four fifty dollars.
+      </td>
+       <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: center; 
+        min-width: 100px; 
+        max-width: 200px; 
+        overflow: auto;">
+        8
+      </td>
+    <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/GT/0_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FS2/8_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/DailyTalk/8_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FCTalker/8_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/L5/8_0_d865.wav" controls preload></audio></td>
+    </tr>
+
+    <tr>
+      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        I don't have that right now.
+      </td>
+       <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: center; 
+        min-width: 100px; 
+        max-width: 200px; 
+        overflow: auto;">
+        9
+      </td>
+       <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/GT/9_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FS2/9_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/DailyTalk/9_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FCTalker/9_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/L5/9_1_d865.wav" controls preload></audio></td>
+    </tr>
+
+
+    <tr>
+      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        You have to pay it off before you can check out more books.
+      </td>
+       <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: center; 
+        min-width: 100px; 
+        max-width: 200px; 
+        overflow: auto;">
+        10
+      </td>
+    <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/GT/10_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FS2/10_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/DailyTalk/10_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FCTalker/10_0_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/L5/10_0_d865.wav" controls preload></audio></td>
+    </tr>
+
+    <tr>
+      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        I'll do that soon.
+      </td>
+       <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: center; 
+        min-width: 100px; 
+        max-width: 200px; 
+        overflow: auto;">
+        11
+      </td>
+       <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/GT/11_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FS2/11_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/DailyTalk/11_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/FCTalker/11_1_d865.wav" controls preload></audio></td>
+      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Dialogue/L5/11_1_d865.wav" controls preload></audio></td>
+    </tr>
+
+  </table>
+</div>
+
+
+	<br>
+
+
+
+	<h3 style = "padding-left: 10px;">2.2. Compare Different Historical Length on Proposed Model</h3>
+
+
+	<div style="overflow-x: auto;">
+	  <table style="border-collapse: collapse; width: 100%; font-size: 16px; text-align: center;">
+	    <tr>
+	      <th colspan="7" style="font-size: 20px; padding: 15px; border-bottom: 2px solid black;">Speech Demos with Different Historical Length</th>
+	    </tr>
+	    <tr>
+	      <th style="border-top: 1px solid black; border-bottom: 1px solid black; width: 500px; text-align: center;">Text</th>
+	      <th style="border-top: 1px solid black; border-bottom: 1px solid black;">N = 2</th>
+	      <th style="border-top: 1px solid black; border-bottom: 1px solid black;">N = 3</th>
+	      <th style="border-top: 1px solid black; border-bottom: 1px solid black;">N = 4</th>
+	      <th style="border-top: 1px solid black; border-bottom: 1px solid black;">N = 5</th>
+	      <th style="border-top: 1px solid black; border-bottom: 1px solid black;">N = 6</th>
+	      <th style="border-top: 1px solid black; border-bottom: 1px solid black;">N = 7</th>
+	    </tr>
+	    <tr>
+	      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        Wow, that looks beautiful!
+      </td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L2/2_1_d3.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L3/2_1_d3.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L4/2_1_d3.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L5/2_1_d3.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L6/2_1_d3.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L7/2_1_d3.wav" controls preload></audio></td>
+	    </tr>
+
+
+	    <tr>
+	      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        Do you think I should wear different dress?
+      </td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L2/3_1_d521.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L3/3_1_d521.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L4/3_1_d521.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L5/3_1_d521.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L6/3_1_d521.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L7/3_1_d521.wav" controls preload></audio></td>
+	    </tr>
+
+
+	    <tr>
+	      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        I need a phone card for this new cell phone.
+        </td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L2/1_1_d766.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L3/1_1_d766.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L4/1_1_d766.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L5/1_1_d766.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L6/1_1_d766.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L7/1_1_d766.wav" controls preload></audio></td>
+	    </tr>
+
+
+	    <tr>
+	      <td style="
+        border-top: 1px solid black; 
+        border-bottom: 1px solid black; 
+        padding: 10px; 
+        word-wrap: break-word; 
+        white-space: normal; 
+        line-height: 1.5; 
+        text-align: left; 
+        min-width: 300px; 
+        max-width: 500px; 
+        overflow: auto;">
+        How much does it cost?
+        </td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L2/4_0_d1017.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L3/4_0_d1017.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L4/4_0_d1017.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L5/4_0_d1017.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L6/4_0_d1017.wav" controls preload></audio></td>
+	      <td style="border-top: 1px solid black; border-bottom: 1px solid black;"><audio src="Samples/Single/L7/4_0_d1017.wav" controls preload></audio></td>
+	    </tr>
+	  </table>
+	</div>
+
+	<br>
+	<br>
+	<center><a name="3"><h2>3. Evaluation Results</h2></a></center>
+
+		<ul><p style = "padding-left: 10px; padding-right: 10px;">
+			<b>Mean Opinion Score(MOS)</b> and <b>Dialogue Mean Opinion Score (D-MOS)</b> was rated from 1 to 5. And average all the score with 95% confidence rate.
+		</p></ul>
+		<ul><p style = "padding-left: 10px; padding-right: 10px;">
+			<b>Log-F0 Root Mean Square Error (F0 RMSE)</b> is the pitch accuracy. Pitch was extracted by pyworld library, and calculated into log scale. Then calculate with root mean square between ground truth and synthesized speech.
+		</p></ul>
+		<ul><p style = "padding-left: 10px; padding-right: 10px;">
+			<b>Mel Ceptrial Distortion (MCD)</b> calculate the difference between ground truth audio and synthesized speech.
+		</p></ul>
+
+	<br>
+
+	<h3 style = "padding-left: 10px;">3.1. Comparison With Other Models</h3>
+		<center>
+		  <img src="./Result 1.png" alt="Image description" style="max-width: 100%; height: auto;">
+		</center>
+	<br>
+	<h3 style = "padding-left: 10px;">3.2. Ablation Study Results</h3>
+
+		<ul><p style = "padding-left: 10px; padding-right: 10px;">
+			<b>Matching Root Mean Square Error (M-RMSE)</b> is calculating the difference between mel prosody extractor results and text-only dialogue encoder results.
+		</p></ul>
+
+		<center>
+		  <img src="./Result 2.png" alt="Image description" style="max-width: 100%; height: auto;">
+		</center>
+
+
+</section>
+
+<br>
+<br>
+<br>
+<br>
+<hr>
+<footer class="site-footer">
+<span class="site-footer-credits">This page was generated by <a href="https://pages.github.com/">GitHub Pages</a>.</span>
+</footer>
+</section>
+</body>
+<grammarly-desktop-integration data-grammarly-shadow-root="true"></grammarly-desktop-integration>
+
+</html>
